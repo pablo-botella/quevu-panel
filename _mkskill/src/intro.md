@@ -23,7 +23,7 @@ web, _ := qlog.New("web",
 screen.ShowStats(web) // so the console can show the queues of its log
 
 panel.AddCloser(web)
-panel.AddSource(quevu.WithHistory(screen, qtxt.NewReader("web.log")))
+panel.AddSource(quevu.Join(screen, quevu.Roles{Immediate: qtxt.NewReader("web.log")}))
 ```
 
 The log knows none of this. To the log a screen is a consumer that happens

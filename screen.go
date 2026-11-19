@@ -12,10 +12,10 @@
 //   - the immediate provider: what was written a moment ago, given back
 //     by position without touching any store.
 //
-// What lies further back is not the screen's business. A stored-data
-// provider, if the application attaches one, takes over where the short
-// memory ends (see quevu.WithHistory), and a console walks from one to
-// the other without noticing.
+// What lies further back is not the screen's business. The providers the
+// application attaches (see quevu.Join) take over where the short memory
+// ends: an immediate one by itself, a historical one only when the user
+// asks for it.
 //
 // The log knows none of this. To the log a screen is a consumer that
 // happens to be fast.

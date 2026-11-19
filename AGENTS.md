@@ -17,10 +17,10 @@ To the console that shows it, two things at once:
 - **The immediate provider**: what was written a moment ago, given back by
   position without touching any store.
 
-What lies further back is not the screen's business. A stored-data
-provider, if the application attaches one with `quevu.WithHistory`, takes
-over where the short memory ends, and a console walks from one to the
-other without noticing.
+What lies further back is not the screen's business. The providers the
+application attaches with `quevu.Join` take over where the short memory
+ends: the immediate one by itself, the historical one only when the user
+asks for it.
 
 ```go
 screen := qpanel.New("web", qpanel.WithMemory(500)) // 500 is the default

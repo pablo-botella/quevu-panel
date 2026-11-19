@@ -21,7 +21,7 @@ func joined(memory, n int, line func(i int) string) (quevu.Source, *Screen, *sto
 	for i := 1; i <= n; i++ {
 		w.put(line(i))
 	}
-	return quevu.WithHistory(scr, st), scr, st, w
+	return quevu.Join(scr, quevu.Roles{Immediate: st}), scr, st, w
 }
 
 func plain(i int) string { return fmt.Sprintf("l%d", i) }
@@ -75,10 +75,10 @@ func TestHistoryIsSeamless(t *testing.T) {
 	}
 }
 
-func TestWithoutAStoreItIsTheScreenItself(t *testing.T) {
+func TestWithoutProvidersItIsTheScreenItself(t *testing.T) {
 	s := New("t")
-	if quevu.WithHistory(s, nil) != quevu.Source(s) {
-		t.Fatal("a nil provider should change nothing")
+	if quevu.Join(s, quevu.Roles{}) != quevu.Source(s) {
+		t.Fatal("no providers should change nothing")
 	}
 }
 
@@ -294,7 +294,7 @@ func TestProviderHidesWhatIsTooOld(t *testing.T) {
 		t.Fatalf("got %d chunks from beyond the horizon", len(got))
 	}
 	// A console joined to it walks back to the horizon and stops.
-	src := quevu.WithHistory(scr, p)
+	src := quevu.Join(scr, quevu.Roles{Immediate: p})
 	if got, _ := src.Before(275, 100); len(got) != 5 || got[0].Seq != 270 {
 		t.Fatalf("joined: %d chunks", len(got))
 	}
@@ -309,14 +309,14 @@ func TestProviderSetsTheTermsOfASearch(t *testing.T) {
 	// It may cap its part of the step, whatever the query asks: the ten
 	// chunks the screen remembers are the screen's to search, the next
 	// fifty are all the store is willing to look at.
-	src := quevu.WithHistory(scr, quevu.Limit(st, quevu.Limits{SearchBudget: 50}))
+	src := quevu.Join(scr, quevu.Roles{Immediate: quevu.Limit(st, quevu.Limits{SearchBudget: 50})})
 	r, _ := quevu.Search(src, quevu.Query{Text: "line 7 ", Budget: 1_000_000})
 	if r.Examined != 60 || r.Reached != 241 || r.Done || len(r.Matches) != 0 {
 		t.Fatalf("capped: %+v", r)
 	}
 
 	// It may refuse. What the screen remembers is still searched.
-	src = quevu.WithHistory(scr, quevu.Limit(st, quevu.Limits{NoSearch: true}))
+	src = quevu.Join(scr, quevu.Roles{Immediate: quevu.Limit(st, quevu.Limits{NoSearch: true})})
 	r, _ = quevu.Search(src, quevu.Query{Text: "line 295"})
 	if len(r.Matches) != 1 || r.Matches[0].Seq != 295 {
 		t.Fatalf("in memory: %+v", r)
