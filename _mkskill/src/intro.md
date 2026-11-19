@@ -16,9 +16,9 @@ nothing.
 
 ```go
 screen := qpanel.New("web")
-web, _ := qlog.New("web",
-	qlog.WithConsumer(file),   // persistent
-	qlog.WithConsumer(screen), // volatile
+web, _ := qhub.New("web",
+	qhub.WithConsumer(file),   // persistent
+	qhub.WithConsumer(screen), // volatile
 )
 screen.ShowStats(web) // so the console can show the queues of its log
 
