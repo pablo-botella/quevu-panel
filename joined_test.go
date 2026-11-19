@@ -221,6 +221,101 @@ func TestSearchForwards(t *testing.T) {
 	}
 }
 
+func TestSearchWithinATimeRange(t *testing.T) {
+	// 300 lines, one per minute ending now; the word is on every tenth.
+	scr := New("t", WithMemory(10))
+	st := &store{}
+	w := to(scr, st)
+	start := time.Now().Add(-299 * time.Minute).Truncate(time.Second)
+	n := 0
+	w.now = func() time.Time { n++; return start.Add(time.Duration(n-1) * time.Minute) }
+	for i := 1; i <= 300; i++ {
+		if i%10 == 0 {
+			w.put(fmt.Sprintf("line %d alarm", i))
+		} else {
+			w.put(fmt.Sprintf("line %d", i))
+		}
+	}
+	at := func(line int) time.Time { return start.Add(time.Duration(line-1) * time.Minute) }
+	src := quevu.Join(scr, quevu.Roles{Immediate: st})
+
+	// Between lines 95 and 125: the alarms at 100, 110 and 120.
+	q := quevu.Query{Text: "alarm", Since: at(95), Until: at(125), Max: 10}
+	r, err := quevu.Search(src, q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := found(r); len(got) != 3 || got[0] != 100 || got[2] != 120 {
+		t.Fatalf("found %v", got)
+	}
+	// It stopped as soon as it walked out of the range, and says why:
+	// there is no point in going further back, or into any history.
+	if !r.Done || !r.OutOfRange || r.Reached != 94 || r.History {
+		t.Fatalf("%+v", r)
+	}
+	// One at a time, newest first, like the console asks.
+	q.Max = 1
+	r, _ = quevu.Search(src, q)
+	if got := found(r); len(got) != 1 || got[0] != 120 {
+		t.Fatalf("first step found %v", got)
+	}
+	q.From = r.Reached
+	r, _ = quevu.Search(src, q)
+	if got := found(r); len(got) != 1 || got[0] != 110 {
+		t.Fatalf("second step found %v", got)
+	}
+	// Forwards the same range is entered from below and left from above.
+	r, _ = quevu.Search(src, quevu.Query{Text: "alarm", Since: at(95), Until: at(125), Max: 10, Forward: true})
+	if got := found(r); len(got) != 3 || got[0] != 100 || !r.OutOfRange || r.Reached != 126 {
+		t.Fatalf("forwards: %v %+v", got, r)
+	}
+	// Only a lower bound, only an upper bound.
+	r, _ = quevu.Search(src, quevu.Query{Text: "alarm", Since: at(281), Max: 10})
+	if got := found(r); len(got) != 2 || got[0] != 290 || got[1] != 300 {
+		t.Fatalf("since only: %v", got)
+	}
+	r, _ = quevu.Search(src, quevu.Query{Text: "alarm", Until: at(25), Max: 10})
+	if got := found(r); len(got) != 2 || got[0] != 10 || got[1] != 20 || r.OutOfRange {
+		t.Fatalf("until only: %v %+v", got, r)
+	}
+	// A range with nothing in it.
+	r, _ = quevu.Search(src, quevu.Query{Text: "alarm", Since: at(101), Until: at(109)})
+	if len(r.Matches) != 0 || !r.Done {
+		t.Fatalf("empty range: %+v", r)
+	}
+}
+
+func TestATimeRangeEndsTheOfferOfHistory(t *testing.T) {
+	scr := New("t", WithMemory(10))
+	recent, old := &store{}, &store{}
+	start := time.Now().Add(-99 * time.Minute)
+	for i := 1; i <= 100; i++ {
+		c := []quevu.Chunk{{Seq: uint64(i), Time: start.Add(time.Duration(i-1) * time.Minute), Data: fmt.Appendf(nil, "line %d", i)}}
+		scr.Write(c)
+		if i > 50 {
+			recent.Write(c)
+		} else {
+			old.Write(c)
+		}
+	}
+	src := quevu.Join(scr, quevu.Roles{Immediate: recent, Historical: old})
+	// The range ends inside recent output: the history cannot help, so
+	// it is not offered.
+	r, _ := quevu.Search(src, quevu.Query{Text: "nothing", Since: start.Add(70 * time.Minute)})
+	if !r.Done || !r.OutOfRange || r.History || old.calls() != 0 {
+		t.Fatalf("%+v, history asked %d times", r, old.calls())
+	}
+	// The range reaches further back than recent output: it is.
+	r, _ = quevu.Search(src, quevu.Query{Text: "nothing", Since: start.Add(20 * time.Minute)})
+	if !r.Done || r.OutOfRange || !r.History {
+		t.Fatalf("%+v", r)
+	}
+	r, _ = quevu.Search(src, quevu.Query{Text: "line 30", Since: start.Add(20 * time.Minute), From: r.Reached, History: true})
+	if got := found(r); len(got) != 1 || got[0] != 30 {
+		t.Fatalf("in the history, in range: %v", got)
+	}
+}
+
 func TestSearchForNothingFindsNothing(t *testing.T) {
 	src, _ := searchable()
 	r, err := quevu.Search(src, quevu.Query{})
