@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mkskill>
+  <project id="main" name="quevu-panel" project-type="Go-Module">
+    <meta>
+      <module>github.com/pablo-botella/quevu-panel</module>
+      <license>MIT</license>
+      <description>The panel of quevu as a consumer of a log, for Go: a Screen is a volatile consumer that keeps the last few hundred chunks, feeds the consoles watching it without ever waiting for them, and is their immediate provider. Use when working with github.com/pablo-botella/quevu-panel (package qpanel) or when a quevu log has to be shown in a window.</description>
+    </meta>
+  </project>
+</mkskill>
