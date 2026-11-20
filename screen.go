@@ -1,6 +1,6 @@
-// Package qpanel is the panel as a consumer of a log.
+// Package qpanel is the panel as a writer of a log.
 //
-// A Screen is attached to a log like any other consumer, next to the
+// A Screen is attached to a log like any other writer, next to the
 // file or the database. It is the volatile one: it keeps the last few
 // hundred chunks in memory, hands new ones to whoever is watching, and
 // stores nothing. When the application ends, what a screen held is gone.
@@ -17,7 +17,7 @@
 // ends: an immediate one by itself, a historical one only when the user
 // asks for it.
 //
-// The log knows none of this. To the log a screen is a consumer that
+// The log knows none of this. To the log a screen is a writer that
 // happens to be fast.
 package qpanel
 
@@ -35,9 +35,11 @@ const DefaultMemory = 500
 // ErrClosed is returned by a Write to a closed screen.
 var ErrClosed = errors.New("qpanel: screen closed")
 
-// Screen is the volatile consumer of one log, and what a console shows
+// Screen is the volatile writer of one log, and what a console shows
 // in one tab.
 type Screen struct {
+	fails quevu.Failures // the body of Run, and what it could not write
+
 	name string
 
 	mu     sync.Mutex
@@ -159,7 +161,7 @@ func (s *Screen) follow(f *feed, n int) []quevu.Chunk {
 
 // ShowStats tells the screen where to read the queues of its log from,
 // so the console can show them: a queue that keeps growing is how one
-// sees that a consumer is too slow. The screen only passes them on.
+// sees that a writer is too slow. The screen only passes them on.
 func (s *Screen) ShowStats(from quevu.StatSource) {
 	s.mu.Lock()
 	s.stats = from
@@ -168,7 +170,7 @@ func (s *Screen) ShowStats(from quevu.StatSource) {
 
 // Stats returns the queues of the log, if the screen was told where to
 // find them.
-func (s *Screen) Stats() []quevu.ConsumerStats {
+func (s *Screen) Stats() []quevu.WriterStats {
 	s.mu.Lock()
 	from := s.stats
 	s.mu.Unlock()
@@ -179,7 +181,16 @@ func (s *Screen) Stats() []quevu.ConsumerStats {
 }
 
 var (
-	_ quevu.Consumer   = (*Screen)(nil)
+	_ quevu.Writer   = (*Screen)(nil)
 	_ quevu.Source     = (*Screen)(nil)
 	_ quevu.StatSource = (*Screen)(nil)
 )
+
+// Run receives from the channel the hub gave this writer until it is
+// closed, writing what arrives in batches, and closes the writer at the
+// end. It is what makes it a quevu.Writer.
+func (s *Screen) Run(in <-chan quevu.Chunk) error { return s.fails.Drain(in, 0, s) }
+
+// Failed returns the chunks lost so far in failed batches, and the last
+// error.
+func (s *Screen) Failed() (uint64, error) { return s.fails.Failed() }

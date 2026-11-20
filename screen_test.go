@@ -9,15 +9,15 @@ import (
 	quevu "github.com/pablo-botella/quevu-kernel"
 )
 
-// writer feeds consumers the way a log does: one batch at a time, with
-// positions and times, to every consumer it was given.
+// writer feeds batchers the way a hub ends up doing: one batch at a time,
+// with positions and times, to every one it was given.
 type writer struct {
 	seq   uint64
 	now   func() time.Time
-	sinks []quevu.Consumer
+	sinks []quevu.Batcher
 }
 
-func to(sinks ...quevu.Consumer) *writer {
+func to(sinks ...quevu.Batcher) *writer {
 	return &writer{now: time.Now, sinks: sinks}
 }
 
@@ -241,9 +241,9 @@ func TestCloseEndsFeedsAndKeepsTheMemory(t *testing.T) {
 	}
 }
 
-type fixedStats []quevu.ConsumerStats
+type fixedStats []quevu.WriterStats
 
-func (f fixedStats) Stats() []quevu.ConsumerStats { return f }
+func (f fixedStats) Stats() []quevu.WriterStats { return f }
 
 func TestStatsArePassedOn(t *testing.T) {
 	s := New("t")
@@ -256,7 +256,7 @@ func TestStatsArePassedOn(t *testing.T) {
 	}
 }
 
-// store is a persistent consumer and its stored-data provider in one:
+// store is a persistent writer and its stored-data provider in one:
 // everything it was ever given, served by position.
 type store struct {
 	mu     sync.Mutex

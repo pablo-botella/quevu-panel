@@ -6,7 +6,7 @@ mkskill:
 
 ## What a screen is
 
-To the log, a consumer: it takes batches and never makes the log wait.
+To the log, a writer: it takes batches and never makes the log wait.
 
 To the console that shows it, two things at once:
 
@@ -29,14 +29,14 @@ screen := qpanel.New("web", qpanel.WithMemory(500)) // 500 is the default
 ## On a server with no desktop
 
 The screen is the part of quevu that only makes sense when somebody can be
-watching. Where nobody can, do not create it: the log has one consumer
+watching. Where nobody can, do not create it: the log has one writer
 less and the application is otherwise the same. Create it when there is a
 window, or an endpoint a controller may connect to.
 
 ## The queues of the log
 
 A console shows, next to its state, the queues of its log: one that keeps
-growing is how one sees that a consumer is too slow. Those numbers belong
+growing is how one sees that a writer is too slow. Those numbers belong
 to the log, so the screen is only told where to read them from and passes
 them on:
 
@@ -48,7 +48,7 @@ screen.ShowStats(theLog)
 
 `Close` ends the feeds. What the screen remembers stays readable, so a
 window still open shows the last words of a log that has closed. It is
-safe to call more than once, and it is: the log closes its consumers, and
+safe to call more than once, and it is: the log closes its writers, and
 the panel closes its sources.
 
 ## Rules and gotchas
@@ -56,8 +56,8 @@ the panel closes its sources.
 - **One screen per log, one tab per screen.** Its name is the title of the
   tab.
 - **A screen stores nothing.** When the application ends, what it held is
-  gone. For output that must be kept, the log needs a persistent consumer
-  as well; for it to be read back, that consumer needs a provider.
+  gone. For output that must be kept, the log needs a persistent writer
+  as well; for it to be read back, that writer needs a provider.
 - **`Before` returning nothing means the short memory ends there**, not
   that the log does.
 - **Do not hold a feed without reading it** unless you mean to: its buffer
