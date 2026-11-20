@@ -25,7 +25,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/pablo-botella/quevu"
+	quevu "github.com/pablo-botella/quevu-kernel"
 )
 
 // DefaultMemory is how many chunks a screen remembers: a few screenfuls

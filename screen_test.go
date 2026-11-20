@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pablo-botella/quevu"
+	quevu "github.com/pablo-botella/quevu-kernel"
 )
 
 // writer feeds consumers the way a log does: one batch at a time, with

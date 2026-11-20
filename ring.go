@@ -3,7 +3,7 @@ package qpanel
 import (
 	"sort"
 
-	"github.com/pablo-botella/quevu"
+	quevu "github.com/pablo-botella/quevu-kernel"
 )
 
 // ring is the short memory of a screen: the most recent chunks, kept so a

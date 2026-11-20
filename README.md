@@ -1,6 +1,6 @@
 # quevu-panel
 
-The panel of [quevu](https://github.com/pablo-botella/quevu) as a consumer
+The panel of [quevu](https://github.com/pablo-botella/quevu-kernel) as a consumer
 of a log.
 
 A `Screen` is attached to a log like any other consumer, next to the file
